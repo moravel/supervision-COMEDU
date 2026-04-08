@@ -50,17 +50,22 @@ environment:
 
 **Format** : `utilisateur:motdepasse` séparés par des virgules.
 
-### 2.3 Générer les certificats SSL
-Un certificat auto-signé est inclus. Pour le régénérer avec l'IP de votre serveur :
-```bash
-# Remplacez 192.168.1.100 par l'IP réelle de votre serveur
-openssl req -x509 -newkey rsa:4096 -keyout server.key -out server.crt \
-  -days 365 -nodes \
-  -subj "/CN=Supervision" \
-  -addext "subjectAltName=IP:192.168.1.100"
-```
+### 2.3 Générer les certificats et clés de sécurité
+Pour sécuriser les communications, le logiciel utilise des certificats SSL/TLS ainsi qu'une clé de transport pour le chiffrement des configurations. Vous pouvez générer ces éléments automatiquement via le script fourni :
 
-> ⚠️ **Important** : Le certificat inclus est générique. En production, regénérez-le avec l'IP exacte de votre serveur.
+```bash
+python generate_security.py
+```
+*(Assurez-vous d'avoir Python et OpenSSL installés sur votre serveur)*
+
+Ce script va générer :
+- `server.key` et `server.crt` : Les certificats SSL auto-signés.
+- `transport.key` : Le token / clé secrète utilisé pour sécuriser les échanges avec les clients.
+
+> ⚠️ **Important** : Si vous déployez en production avec une IP fixe ou un nom de domaine, vous pouvez personnaliser le certificat SSL avec l'IP de votre serveur en ligne de commande manuelle :
+> ```bash
+> openssl req -x509 -newkey rsa:4096 -keyout server.key -out server.crt -days 365 -nodes -subj "/CN=Supervision" -addext "subjectAltName=IP:192.168.1.100"
+> ```
 
 ---
 
