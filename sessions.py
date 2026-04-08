@@ -22,10 +22,15 @@ SESSIONS_FILE = "data/sessions.json"
 
 
 class SessionManager:
-    """Gère toutes les sessions de supervision en mémoire."""
+    """
+    Gère le cycle de vie de toutes les sessions de supervision en mémoire serveur.
+    C'est le composant central qui gère le CRUD (Création, Lecture, Mise à jour, Suppression)
+    des sessions et des élèves (clients) connectés, tout en gérant la persistance sur disque
+    via un fichier JSON pour ne rien perdre en cas de redémarrage du serveur.
+    """
 
     def __init__(self):
-        self.sessions: dict[str, Session] = {}  # group_code -> Session
+        self.sessions: dict[str, Session] = {}  # Associe un code de groupe à l'objet Session
         self._load_from_disk()
 
     # ── Persistance JSON ─────────────────────────────────────────
@@ -103,15 +108,19 @@ class SessionManager:
     # ── Génération code groupe ───────────────────────────────────
 
     def _generate_group_code(self) -> str:
-        """Génère un code groupe unique de 4 caractères."""
+        """
+        Génère un code de groupe (ex: 'AMK7') aléatoire de 4 caractères pour rejoindre une session.
+        L'alphabet utilisé exclut volontairement les caractères ambigus (0, O, 1, l) 
+        pour éviter les erreurs de saisie par les élèves.
+        """
         active_codes = {
             code for code, s in self.sessions.items() if s.is_active
         }
-        for _ in range(1000):  # protection boucle infinie
+        for _ in range(1000):  # Protection contre une boucle infinie en cas de saturation
             code = "".join(random.choices(GROUP_CODE_ALPHABET, k=GROUP_CODE_LENGTH))
             if code not in active_codes:
                 return code
-        raise RuntimeError("Unable to generate unique group code after 1000 attempts")
+        raise RuntimeError("Impossible de générer un code de groupe unique après 1000 tentatives")
 
     # ── CRUD Sessions ────────────────────────────────────────────
 
