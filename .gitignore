@@ -1,0 +1,37 @@
+# Scripts and Logs
+*.log
+*.sqlite
+
+# Confidential / Keys
+server.key
+server.crt
+transport.key
+*.pem
+*.pfx
+*.p12
+
+# Environment variables
+.env
+
+# Python specific
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Directories with dynamic data
+data/
+uploads/
+client_binaries/
+
+# Archives
+*.zip
+*.tar.gz
+*.rar
+*.7z

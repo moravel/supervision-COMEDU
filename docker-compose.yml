@@ -1,0 +1,16 @@
+services:
+  supervision-server:
+    build: .
+    container_name: supervision-server
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./data:/app/data
+      - ./server.crt:/app/server.crt
+      - ./server.key:/app/server.key
+    environment:
+      - PORT=3001
+      - TEACHERS=admin:password123
+      - SECRET_KEY=supervision-secret-key-change-me
+    restart: unless-stopped

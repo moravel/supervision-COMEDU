@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supervision — Rejoindre une session</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Fira+Code:wght@700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #0f0f1a;
+            --surface: #1a1a2e;
+            --surface-2: #22223a;
+            --primary: #6c63ff;
+            --primary-hover: #5a52d5;
+            --primary-glow: rgba(108, 99, 255, 0.25);
+            --green: #2ed573;
+            --green-glow: rgba(46, 213, 115, 0.2);
+            --yellow: #ffa502;
+            --red: #ff4757;
+            --text: #e8e8f0;
+            --text-muted: #8888aa;
+            --border: #2a2a44;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-image:
+                radial-gradient(ellipse at 30% 10%, rgba(108, 99, 255, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 70% 90%, rgba(99, 179, 255, 0.06) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(46, 213, 115, 0.03) 0%, transparent 40%);
+            overflow: hidden;
+        }
+
+        /* ── Floating particles ── */
+        .particles {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: var(--primary);
+            border-radius: 50%;
+            opacity: 0.15;
+            animation: float 20s infinite linear;
+        }
+
+        .particle:nth-child(2) { left: 20%; animation-delay: -3s; animation-duration: 25s; width: 3px; height: 3px; }
+        .particle:nth-child(3) { left: 40%; animation-delay: -7s; animation-duration: 18s; width: 5px; height: 5px; opacity: 0.1; }
+        .particle:nth-child(4) { left: 60%; animation-delay: -5s; animation-duration: 22s; }
+        .particle:nth-child(5) { left: 80%; animation-delay: -10s; animation-duration: 28s; width: 3px; height: 3px; }
+        .particle:nth-child(6) { left: 10%; animation-delay: -15s; animation-duration: 30s; width: 6px; height: 6px; opacity: 0.08; }
+        .particle:nth-child(7) { left: 50%; animation-delay: -12s; animation-duration: 20s; }
+        .particle:nth-child(8) { left: 90%; animation-delay: -8s; animation-duration: 24s; width: 3px; height: 3px; }
+
+        @keyframes float {
+            0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 0.15; }
+            90% { opacity: 0.15; }
+            100% { transform: translateY(-100vh) rotate(720deg); opacity: 0; }
+        }
+
+        /* ── Main card ── */
+        .card {
+            position: relative;
+            z-index: 1;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 48px 40px;
+            width: 100%;
+            max-width: 460px;
+            box-shadow:
+                0 20px 60px rgba(0, 0, 0, 0.4),
+                0 0 80px rgba(108, 99, 255, 0.05);
+            animation: cardAppear 0.6s ease-out;
+        }
+
+        @keyframes cardAppear {
+            from { opacity: 0; transform: translateY(30px) scale(0.97); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* ── Logo ── */
+        .logo {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .logo-icon {
+            font-size: 3rem;
+            margin-bottom: 8px;
+            display: block;
+            animation: pulse-icon 3s ease-in-out infinite;
+        }
+
+        @keyframes pulse-icon {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .logo h1 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary), #63b3ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
+            margin-bottom: 4px;
+        }
+
+        .logo p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        /* ── Code input ── */
+        .code-input-wrapper {
+            margin-bottom: 24px;
+        }
+
+        .code-input-wrapper label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .code-input {
+            width: 100%;
+            padding: 18px;
+            font-family: 'Fira Code', 'Cascadia Code', monospace;
+            font-size: 2.2rem;
+            font-weight: 700;
+            text-align: center;
+            letter-spacing: 12px;
+            background: var(--bg);
+            border: 2px solid var(--border);
+            border-radius: 16px;
+            color: var(--text);
+            outline: none;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+
+        .code-input::placeholder {
+            color: rgba(136, 136, 170, 0.3);
+            letter-spacing: 8px;
+            font-size: 1.8rem;
+        }
+
+        .code-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px var(--primary-glow);
+        }
+
+        .code-input.valid {
+            border-color: var(--green);
+            box-shadow: 0 0 0 4px var(--green-glow);
+        }
+
+        .code-input.invalid {
+            border-color: var(--red);
+            box-shadow: 0 0 0 4px rgba(255, 71, 87, 0.2);
+            animation: shake 0.4s ease-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-6px); }
+            40% { transform: translateX(6px); }
+            60% { transform: translateX(-4px); }
+            80% { transform: translateX(4px); }
+        }
+
+        /* ── Session info ── */
+        .session-info {
+            display: none;
+            background: rgba(46, 213, 115, 0.08);
+            border: 1px solid rgba(46, 213, 115, 0.2);
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .session-info.active { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .session-info .label {
+            font-size: 0.8rem;
+            color: var(--green);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .session-info .name {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .session-info .teacher {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        /* ── Error message ── */
+        .error-msg {
+            display: none;
+            background: rgba(255, 71, 87, 0.1);
+            border: 1px solid rgba(255, 71, 87, 0.25);
+            border-radius: 12px;
+            padding: 14px 20px;
+            margin-bottom: 24px;
+            color: var(--red);
+            font-size: 0.9rem;
+            font-weight: 500;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .error-msg.active { display: block; }
+
+        /* ── Download button ── */
+        .download-btn {
+            width: 100%;
+            padding: 16px 24px;
+            font-size: 1rem;
+            font-weight: 700;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .download-btn:disabled {
+            background: var(--surface-2);
+            color: var(--text-muted);
+            cursor: not-allowed;
+            border: 1px solid var(--border);
+        }
+
+        .download-btn:not(:disabled) {
+            background: linear-gradient(135deg, var(--primary), #5a52d5);
+            color: white;
+            box-shadow: 0 4px 20px rgba(108, 99, 255, 0.3);
+        }
+
+        .download-btn:not(:disabled):hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(108, 99, 255, 0.4);
+        }
+
+        .download-btn:not(:disabled):active {
+            transform: translateY(0);
+        }
+
+        .download-btn .icon {
+            font-size: 1.3rem;
+        }
+
+        .download-btn.loading {
+            pointer-events: none;
+        }
+
+        .download-btn.loading .btn-text { opacity: 0; }
+
+        .download-btn.loading::after {
+            content: '';
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .download-btn.success {
+            background: var(--green) !important;
+            box-shadow: 0 4px 20px var(--green-glow) !important;
+        }
+
+        /* ── Footer info ── */
+        .footer-info {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        .footer-info a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 520px) {
+            .card {
+                margin: 16px;
+                padding: 32px 24px;
+            }
+            .code-input {
+                font-size: 1.6rem;
+                letter-spacing: 8px;
+                padding: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Floating particles -->
+    <div class="particles">
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+    </div>
+
+    <div class="card">
+        <div class="logo">
+            <span class="logo-icon">📡</span>
+            <h1>Supervision</h1>
+            <p>Téléchargez le client pour rejoindre la session</p>
+        </div>
+
+        <!-- Code input -->
+        <div class="code-input-wrapper">
+            <label for="session-code">Code de session</label>
+            <input
+                type="text"
+                id="session-code"
+                class="code-input"
+                placeholder="XXXX"
+                maxlength="4"
+                autocomplete="off"
+                spellcheck="false"
+                autofocus
+            >
+        </div>
+
+        <!-- Session info (shown after validation) -->
+        <div class="session-info" id="session-info">
+            <div class="label">✅ Session trouvée</div>
+            <div class="name" id="session-name">—</div>
+            <div class="teacher" id="session-teacher">—</div>
+        </div>
+
+        <!-- Error message -->
+        <div class="error-msg" id="error-msg"></div>
+
+        <!-- Download button -->
+        <button class="download-btn" id="download-btn" disabled>
+            <span class="icon">⬇</span>
+            <span class="btn-text">Entrez le code pour télécharger</span>
+        </button>
+
+        <div class="footer-info">
+            Demandez le code à votre professeur.<br>
+            Après le téléchargement, extrayez le ZIP et lancez <strong>Supervision.exe</strong>.
+        </div>
+    </div>
+
+    <script>
+        const codeInput = document.getElementById('session-code');
+        const sessionInfo = document.getElementById('session-info');
+        const sessionName = document.getElementById('session-name');
+        const sessionTeacher = document.getElementById('session-teacher');
+        const errorMsg = document.getElementById('error-msg');
+        const downloadBtn = document.getElementById('download-btn');
+
+        let validatedCode = null;
+        let debounceTimer = null;
+
+        // Auto-uppercase and limit to 4 chars
+        codeInput.addEventListener('input', function() {
+            const val = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
+            if (this.value !== val) this.value = val;
+
+            // Reset state
+            validatedCode = null;
+            sessionInfo.classList.remove('active');
+            errorMsg.classList.remove('active');
+            codeInput.classList.remove('valid', 'invalid');
+            downloadBtn.disabled = true;
+            downloadBtn.querySelector('.btn-text').textContent = 'Entrez le code pour télécharger';
+
+            // Validate when 4 chars
+            if (val.length === 4) {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => validateCode(val), 300);
+            }
+        });
+
+        // Allow Enter to trigger download
+        codeInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && validatedCode) {
+                downloadClient();
+            }
+        });
+
+        async function validateCode(code) {
+            try {
+                const resp = await fetch('/join/validate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ group_code: code }),
+                });
+
+                const data = await resp.json();
+
+                if (resp.ok && data.valid) {
+                    // Session found
+                    validatedCode = code;
+                    codeInput.classList.add('valid');
+                    codeInput.classList.remove('invalid');
+
+                    sessionName.textContent = data.label || 'Session ' + code;
+                    sessionTeacher.textContent = '👤 Prof. ' + (data.teacher_id || '');
+                    sessionInfo.classList.add('active');
+                    errorMsg.classList.remove('active');
+
+                    downloadBtn.disabled = false;
+                    downloadBtn.querySelector('.btn-text').textContent = 'Télécharger le client Windows';
+                } else {
+                    // Invalid code
+                    codeInput.classList.add('invalid');
+                    codeInput.classList.remove('valid');
+                    sessionInfo.classList.remove('active');
+
+                    errorMsg.textContent = data.detail || 'Code de session invalide ou session expirée.';
+                    errorMsg.classList.add('active');
+
+                    downloadBtn.disabled = true;
+                    downloadBtn.querySelector('.btn-text').textContent = 'Code invalide';
+                }
+            } catch (err) {
+                codeInput.classList.add('invalid');
+                errorMsg.textContent = 'Erreur de connexion au serveur.';
+                errorMsg.classList.add('active');
+            }
+        }
+
+        async function downloadClient() {
+            if (!validatedCode) return;
+
+            downloadBtn.classList.add('loading');
+
+            try {
+                const resp = await fetch(`/join/download/${validatedCode}/windows`);
+
+                if (!resp.ok) {
+                    const data = await resp.json().catch(() => ({}));
+                    throw new Error(data.detail || 'Erreur lors du téléchargement');
+                }
+
+                // Download the file
+                const blob = await resp.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Supervision_${validatedCode}.zip`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                downloadBtn.classList.remove('loading');
+                downloadBtn.classList.add('success');
+                downloadBtn.querySelector('.btn-text').textContent = '✅ Téléchargé !';
+
+                setTimeout(() => {
+                    downloadBtn.classList.remove('success');
+                    downloadBtn.querySelector('.btn-text').textContent = 'Télécharger le client Windows';
+                }, 3000);
+
+            } catch (err) {
+                downloadBtn.classList.remove('loading');
+                errorMsg.textContent = err.message;
+                errorMsg.classList.add('active');
+            }
+        }
+
+        downloadBtn.addEventListener('click', downloadClient);
+    </script>
+</body>
+</html>

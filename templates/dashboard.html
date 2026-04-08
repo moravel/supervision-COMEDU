@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supervision — {{ session.label or session.group_code }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #0a0a14;
+            --surface: #141422;
+            --surface-2: #1c1c30;
+            --surface-3: #24243c;
+            --primary: #6c63ff;
+            --primary-hover: #5a52d5;
+            --green: #2ed573;
+            --green-bg: rgba(46, 213, 115, 0.12);
+            --yellow: #ffa502;
+            --yellow-bg: rgba(255, 165, 2, 0.12);
+            --red: #ff4757;
+            --red-bg: rgba(255, 71, 87, 0.12);
+            --text: #e8e8f0;
+            --text-muted: #7878a0;
+            --border: #2a2a44;
+            --glow: rgba(108, 99, 255, 0.15);
+            --radius: 14px;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* ══════════════════════════════════════════════════
+           HEADER
+        ══════════════════════════════════════════════════ */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(20, 20, 34, 0.9);
+            backdrop-filter: blur(16px);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header-code {
+            font-size: 1.4rem;
+            font-weight: 900;
+            font-family: 'Fira Code', monospace;
+            letter-spacing: 3px;
+            background: linear-gradient(135deg, var(--primary), #63b3ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-label {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            max-width: 200px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .header-stats {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .stat-badge {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .stat-badge.active { background: var(--green-bg); color: var(--green); }
+        .stat-badge.inactive { background: var(--yellow-bg); color: var(--yellow); }
+        .stat-badge.disconnected { background: var(--red-bg); color: var(--red); }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .countdown {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-family: 'Fira Code', monospace;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 10px;
+            border: none;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+        .btn:hover { transform: translateY(-1px); }
+        .btn-back { background: var(--surface-2); color: var(--text-muted); border: 1px solid var(--border); }
+        .btn-back:hover { color: var(--text); border-color: var(--text-muted); }
+        .btn-danger { background: rgba(255,71,87,0.15); color: var(--red); border: 1px solid rgba(255,71,87,0.3); }
+        .btn-danger:hover { background: rgba(255,71,87,0.25); }
+
+        /* ══════════════════════════════════════════════════
+           SSE BANNER
+        ══════════════════════════════════════════════════ */
+        .sse-banner {
+            display: none;
+            padding: 10px 24px;
+            background: rgba(255, 165, 2, 0.15);
+            border-bottom: 1px solid rgba(255, 165, 2, 0.3);
+            color: var(--yellow);
+            font-size: 0.85rem;
+            text-align: center;
+            font-weight: 500;
+            animation: pulse 2s infinite;
+        }
+        .sse-banner.visible { display: block; }
+        @keyframes pulse { 50% { opacity: 0.7; } }
+
+        /* ══════════════════════════════════════════════════
+           CONTROL PANEL
+        ══════════════════════════════════════════════════ */
+        .controls {
+            padding: 16px 24px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            background: var(--surface-2);
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+
+        .control-group label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .toggle {
+            position: relative;
+            width: 40px;
+            height: 22px;
+            cursor: pointer;
+        }
+        .toggle input { opacity: 0; width: 0; height: 0; }
+        .toggle .slider {
+            position: absolute;
+            inset: 0;
+            background: var(--surface-3);
+            border-radius: 22px;
+            transition: 0.3s;
+        }
+        .toggle .slider::before {
+            content: '';
+            position: absolute;
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 3px;
+            background: var(--text-muted);
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+        .toggle input:checked + .slider { background: var(--primary); }
+        .toggle input:checked + .slider::before { transform: translateX(18px); background: white; }
+
+        .ctrl-btn {
+            padding: 7px 14px;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 0.8rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+        .ctrl-btn:hover { background: var(--surface-3); border-color: var(--primary); }
+
+        /* ══════════════════════════════════════════════════
+           THUMBNAIL GRID
+        ══════════════════════════════════════════════════ */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+            padding: 24px;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+            animation: cardIn 0.3s ease-out;
+        }
+
+        @keyframes cardIn {
+            from { opacity: 0; transform: scale(0.97); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .card:hover {
+            border-color: rgba(108,99,255,0.4);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            transform: translateY(-2px);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .card-login {
+            font-weight: 700;
+            font-size: 0.9rem;
+            max-width: 160px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .status-dot.active { background: var(--green); box-shadow: 0 0 8px var(--green); }
+        .status-dot.inactive { background: var(--yellow); box-shadow: 0 0 8px var(--yellow); }
+        .status-dot.disconnected { background: var(--red); box-shadow: 0 0 6px var(--red); }
+
+        .card-thumb {
+            position: relative;
+            aspect-ratio: 16/9;
+            background: var(--surface-2);
+            cursor: pointer;
+            overflow: hidden;
+        }
+
+        .card-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transition: opacity 0.3s;
+        }
+
+        .card-thumb .placeholder {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .placeholder .spinner {
+            width: 24px; height: 24px;
+            border: 2px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Bordure fraîcheur */
+        .card-thumb.fresh { border-bottom: 3px solid var(--green); }
+        .card-thumb.stale { border-bottom: 3px solid var(--yellow); }
+        .card-thumb.old   { border-bottom: 3px solid var(--red); }
+
+        .card-info {
+            padding: 10px 14px;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+        .card-info .window-title {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+        }
+
+        .card-footer {
+            display: flex;
+            border-top: 1px solid var(--border);
+        }
+        .card-footer button {
+            flex: 1;
+            padding: 10px;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 0.78rem;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-weight: 500;
+        }
+        .card-footer button:hover { background: var(--surface-2); color: var(--text); }
+        .card-footer button:first-child { border-right: 1px solid var(--border); }
+
+        .empty-grid {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 80px 20px;
+            color: var(--text-muted);
+        }
+        .empty-grid .icon { font-size: 3rem; margin-bottom: 12px; }
+
+        /* ══════════════════════════════════════════════════
+           WHITELIST PANEL
+        ══════════════════════════════════════════════════ */
+        .whitelist-panel {
+            display: none;
+            padding: 12px 24px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            gap: 10px;
+            align-items: flex-start;
+        }
+        .whitelist-panel.visible { display: flex; }
+        .whitelist-panel textarea {
+            flex: 1;
+            min-height: 60px;
+            padding: 10px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-family: 'Fira Code', monospace;
+            font-size: 0.8rem;
+            resize: vertical;
+        }
+        .whitelist-panel textarea:focus { outline: none; border-color: var(--primary); }
+
+        /* ══════════════════════════════════════════════════
+           MODAL
+        ══════════════════════════════════════════════════ */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(8px);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.active { display: flex; }
+
+        .modal {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            width: 95vw;
+            max-width: 1200px;
+            max-height: 92vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 80px rgba(0,0,0,0.6);
+            animation: modalIn 0.25s ease-out;
+        }
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            background: var(--surface);
+            z-index: 1;
+        }
+        .modal-header h2 { font-size: 1.1rem; }
+        .modal-close {
+            width: 36px; height: 36px;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text);
+            font-size: 1.1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+        }
+        .modal-close:hover { background: var(--red); border-color: var(--red); }
+
+        .modal-body { padding: 24px; }
+        .modal-body img {
+            width: 100%;
+            border-radius: 12px;
+            margin-bottom: 16px;
+        }
+
+        .modal-nav {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            padding: 16px 24px;
+            border-top: 1px solid var(--border);
+        }
+        .modal-nav button {
+            padding: 10px 24px;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text);
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.15s;
+        }
+        .modal-nav button:hover { background: var(--primary); border-color: var(--primary); }
+
+        /* ══════════════════════════════════════════════════
+           MESSAGE MODAL
+        ══════════════════════════════════════════════════ */
+        .msg-modal {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 32px;
+            width: 100%;
+            max-width: 480px;
+        }
+        .msg-modal h2 { margin-bottom: 20px; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label {
+            display: block; font-size: 0.8rem; font-weight: 500;
+            color: var(--text-muted); margin-bottom: 6px;
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%; padding: 10px 14px;
+            background: var(--bg); border: 1px solid var(--border);
+            border-radius: 8px; color: var(--text); font-size: 0.9rem;
+        }
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+            outline: none; border-color: var(--primary);
+        }
+        .form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+<!-- SSE disconnection banner -->
+<div class="sse-banner" id="sse-banner">⚠ Connexion temps réel perdue — tentative de reconnexion...</div>
+
+<!-- Header -->
+<div class="header">
+    <div class="header-left">
+        <a href="/sessions" class="btn btn-back">← Retour</a>
+        <span class="header-code">{{ session.group_code }}</span>
+        <span class="header-label">{{ session.label }}</span>
+    </div>
+    <div class="header-stats">
+        <span class="stat-badge active" id="stat-active">🟢 <span>0</span></span>
+        <span class="stat-badge inactive" id="stat-inactive">🟡 <span>0</span></span>
+        <span class="stat-badge disconnected" id="stat-disconnected">🔴 <span>0</span></span>
+    </div>
+    <div class="header-right">
+        <span class="countdown" id="countdown"></span>
+        <button class="btn btn-danger" onclick="closeSession()">Fermer la session</button>
+    </div>
+</div>
+
+<!-- Controls -->
+<div class="controls">
+    <div class="control-group">
+        <label>🔒 Bloquer internet</label>
+        <label class="toggle">
+            <input type="checkbox" id="toggle-block" onchange="toggleBlock()">
+            <span class="slider"></span>
+        </label>
+    </div>
+    <button class="ctrl-btn" onclick="showMessageModal()">💬 Message</button>
+    <button class="ctrl-btn" onclick="showUrlPrompt()">🌐 Ouvrir URL</button>
+    <button class="ctrl-btn" onclick="captureAll()">📸 Capturer tous</button>
+</div>
+
+<!-- Whitelist panel -->
+<div class="whitelist-panel" id="whitelist-panel">
+    <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;">
+        <div style="flex:1;min-width:250px;">
+            <h4 style="margin:0 0 8px;color:#e2e8f0;">⏱️ Durée du blocage</h4>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+                <button class="ctrl-btn duration-btn" onclick="setBlockDuration(5)" data-min="5">5 min</button>
+                <button class="ctrl-btn duration-btn" onclick="setBlockDuration(15)" data-min="15">15 min</button>
+                <button class="ctrl-btn duration-btn" onclick="setBlockDuration(30)" data-min="30">30 min</button>
+                <button class="ctrl-btn duration-btn" onclick="setBlockDuration(60)" data-min="60">1 heure</button>
+                <button class="ctrl-btn duration-btn active" onclick="setBlockDuration(0)" data-min="0">Illimité</button>
+            </div>
+            <div id="block-timer" style="display:none;padding:8px 12px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);border-radius:8px;color:#fca5a5;font-size:0.9rem;">
+                🔒 Blocage actif — <strong id="block-countdown"></strong> restantes
+            </div>
+        </div>
+        <div style="flex:1;min-width:250px;">
+            <h4 style="margin:0 0 4px;color:#e2e8f0;">✅ Sites autorisés (liste blanche)</h4>
+            <p style="margin:0 0 8px;font-size:0.75rem;color:#94a3b8;">
+                Entrez un domaine par ligne. Les élèves pourront accéder uniquement à ces sites.<br>
+                Exemples : <code style="color:#7dd3fc;">wikipedia.org</code> &nbsp; <code style="color:#7dd3fc;">education.gouv.fr</code> &nbsp; <code style="color:#7dd3fc;">*.edu.fr</code>
+            </p>
+            <textarea id="whitelist-text" placeholder="wikipedia.org&#10;education.gouv.fr&#10;*.edu.fr" rows="4"></textarea>
+            <button class="ctrl-btn" onclick="applyWhitelist()" style="margin-top:8px;width:100%;">🚀 Activer le blocage</button>
+        </div>
+    </div>
+</div>
+
+
+<!-- Thumbnail grid -->
+<div class="grid" id="grid">
+    <div class="empty-grid" id="empty-state">
+        <div class="icon">👥</div>
+        <p>En attente de connexion des élèves...</p>
+        <p style="font-size:0.8rem;margin-top:8px;">Code groupe : <strong>{{ session.group_code }}</strong></p>
+    </div>
+</div>
+
+<!-- Detail modal -->
+<div class="modal-overlay" id="detail-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 id="detail-title">Détail</h2>
+            <button class="modal-close" onclick="closeDetailModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <img id="detail-img" src="" alt="Screenshot">
+            <div id="detail-info" class="card-info"></div>
+        </div>
+        <div class="modal-nav">
+            <button onclick="navHistory(-1)">◀ Précédent</button>
+            <button onclick="triggerCaptureFromModal()">📸 Capturer</button>
+            <button onclick="navHistory(1)">Suivant ▶</button>
+        </div>
+    </div>
+</div>
+
+<!-- Message modal -->
+<div class="modal-overlay" id="msg-modal-overlay">
+    <div class="msg-modal">
+        <h2>💬 Envoyer un message</h2>
+        <div class="form-group">
+            <label>Type</label>
+            <select id="msg-type">
+                <option value="info">ℹ Information</option>
+                <option value="warning">⚠ Avertissement</option>
+                <option value="alert">🚨 Alerte</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Message</label>
+            <textarea id="msg-text" rows="3" placeholder="Texte à afficher..."></textarea>
+        </div>
+        <div class="form-group">
+            <label>Durée (secondes, 0 = fermeture manuelle)</label>
+            <input type="number" id="msg-duration" value="10" min="0">
+        </div>
+        <div class="form-actions">
+            <button class="btn btn-back" onclick="closeMsgModal()">Annuler</button>
+            <button class="ctrl-btn" style="background:var(--primary);color:white;" onclick="sendMessage()">Envoyer</button>
+        </div>
+    </div>
+</div>
+
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════════
+const GROUP_CODE = "{{ session.group_code }}";
+const EXPIRES_AT = new Date("{{ session.expires_at.isoformat() }}");
+let clients = {};          // login -> client data
+let historyCache = {};     // login -> [{timestamp, original_url, ...}]
+let currentDetailLogin = null;
+let currentHistoryIdx = 0;
+let msgCounter = 0;
+
+// ══════════════════════════════════════════════════════════════
+// SSE CONNECTION
+// ══════════════════════════════════════════════════════════════
+let eventSource = null;
+
+function connectSSE() {
+    if (eventSource) { eventSource.close(); }
+    eventSource = new EventSource(`/session/${GROUP_CODE}/stream`);
+
+    eventSource.onopen = () => {
+        document.getElementById('sse-banner').classList.remove('visible');
+    };
+
+    eventSource.onmessage = (e) => {
+        try {
+            const data = JSON.parse(e.data);
+            if (data.type === 'keepalive') return;
+            if (data.type === 'session_closed') {
+                alert('La session a été fermée.');
+                window.location.href = '/sessions';
+                return;
+            }
+            if (data.type === 'status_update') {
+                handleStatusUpdate(data.clients);
+                return;
+            }
+            if (data.type === 'new_thumbnail' || data.login) {
+                handleNewThumbnail(data);
+            }
+        } catch (err) {
+            console.error('SSE parse error:', err);
+        }
+    };
+
+    eventSource.onerror = () => {
+        document.getElementById('sse-banner').classList.add('visible');
+        eventSource.close();
+        setTimeout(connectSSE, 5000);
+    };
+}
+
+// ══════════════════════════════════════════════════════════════
+// INITIAL LOAD
+// ══════════════════════════════════════════════════════════════
+async function loadInitial() {
+    try {
+        const resp = await fetch(`/session/${GROUP_CODE}/thumbnails`);
+        if (!resp.ok) return;
+        const data = await resp.json();
+        data.forEach(c => { clients[c.login] = c; });
+        renderGrid();
+        updateStats();
+    } catch (e) { console.error('Initial load error:', e); }
+}
+
+// ══════════════════════════════════════════════════════════════
+// EVENT HANDLERS
+// ══════════════════════════════════════════════════════════════
+function handleNewThumbnail(data) {
+    const login = data.login;
+    if (!clients[login]) {
+        clients[login] = data;
+        renderGrid();
+    } else {
+        Object.assign(clients[login], data);
+        updateCard(login);
+    }
+    updateStats();
+}
+
+function handleStatusUpdate(statusList) {
+    statusList.forEach(s => {
+        if (clients[s.login]) {
+            clients[s.login].status = s.status;
+            clients[s.login].last_seen = s.last_seen;
+            if (s.active_window !== undefined) {
+                clients[s.login].active_window = s.active_window;
+            }
+            updateCardStatus(s.login);
+        } else {
+            clients[s.login] = s;
+            renderGrid();
+        }
+    });
+    updateStats();
+}
+
+// ══════════════════════════════════════════════════════════════
+// RENDERING
+// ══════════════════════════════════════════════════════════════
+function renderGrid() {
+    const grid = document.getElementById('grid');
+    const logins = Object.keys(clients).sort();
+
+    if (logins.length === 0) {
+        grid.innerHTML = `<div class="empty-grid" id="empty-state">
+            <div class="icon">👥</div>
+            <p>En attente de connexion des élèves...</p>
+            <p style="font-size:0.8rem;margin-top:8px;">Code groupe : <strong>${GROUP_CODE}</strong></p>
+        </div>`;
+        return;
+    }
+
+    grid.innerHTML = '';
+    logins.forEach(login => {
+        grid.appendChild(createCard(login));
+    });
+}
+
+function createCard(login) {
+    const c = clients[login];
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.id = `card-${login}`;
+    card.innerHTML = `
+        <div class="card-header">
+            <span class="card-login">${login}</span>
+            <span class="status-dot ${c.status || 'disconnected'}" id="dot-${login}"></span>
+        </div>
+        <div class="card-thumb ${getFreshnessClass(c)}" id="thumb-${login}" onclick="openDetail('${login}')">
+            ${c.thumbnail_url
+                ? `<img src="${c.thumbnail_url}?t=${Date.now()}" alt="Screenshot ${login}" id="img-${login}">`
+                : `<div class="placeholder"><div class="spinner"></div>En attente de capture...</div>`
+            }
+        </div>
+        <div class="card-info">
+            <div class="window-title" id="window-${login}">🖥 ${c.active_window || '—'}</div>
+            <div id="ago-${login}">⏱ ${formatAgo(c.last_thumb_at || c.captured_at)}</div>
+        </div>
+        <div class="card-footer">
+            <button onclick="triggerCapture('${login}')">📸 Capturer</button>
+            <button onclick="openHistory('${login}')">🔍 Historique</button>
+        </div>
+    `;
+    return card;
+}
+
+function updateCard(login) {
+    const c = clients[login];
+    // Update image
+    const img = document.getElementById(`img-${login}`);
+    const thumbDiv = document.getElementById(`thumb-${login}`);
+    if (c.thumbnail_url) {
+        if (img) {
+            img.src = c.thumbnail_url + '?t=' + Date.now();
+        } else if (thumbDiv) {
+            thumbDiv.innerHTML = `<img src="${c.thumbnail_url}?t=${Date.now()}" alt="Screenshot ${login}" id="img-${login}">`;
+        }
+    }
+    // Update freshness border
+    if (thumbDiv) {
+        thumbDiv.className = 'card-thumb ' + getFreshnessClass(c);
+    }
+    // Update info
+    const windowEl = document.getElementById(`window-${login}`);
+    if (windowEl) windowEl.textContent = '🖥 ' + (c.active_window || '—');
+    const agoEl = document.getElementById(`ago-${login}`);
+    if (agoEl) agoEl.textContent = '⏱ ' + formatAgo(c.last_thumb_at || c.captured_at);
+    updateCardStatus(login);
+}
+
+function updateCardStatus(login) {
+    const c = clients[login];
+    if (!c) return;
+    const dot = document.getElementById(`dot-${login}`);
+    if (dot) dot.className = 'status-dot ' + (c.status || 'disconnected');
+}
+
+function updateStats() {
+    let active = 0, inactive = 0, disconnected = 0;
+    Object.values(clients).forEach(c => {
+        if (c.status === 'active') active++;
+        else if (c.status === 'inactive') inactive++;
+        else disconnected++;
+    });
+    document.querySelector('#stat-active span').textContent = active;
+    document.querySelector('#stat-inactive span').textContent = inactive;
+    document.querySelector('#stat-disconnected span').textContent = disconnected;
+}
+
+// ══════════════════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════════════════
+function getFreshnessClass(c) {
+    if (!c.last_thumb_at && !c.captured_at) return '';
+    const ts = new Date(c.last_thumb_at || c.captured_at);
+    const diffS = (Date.now() - ts.getTime()) / 1000;
+    if (diffS < 30) return 'fresh';
+    if (diffS < 120) return 'stale';
+    return 'old';
+}
+
+function formatAgo(isoStr) {
+    if (!isoStr) return 'Jamais';
+    const diffS = Math.floor((Date.now() - new Date(isoStr).getTime()) / 1000);
+    if (diffS < 0) return 'À l\'instant';
+    if (diffS < 60) return `il y a ${diffS}s`;
+    if (diffS < 3600) return `il y a ${Math.floor(diffS / 60)}m`;
+    return `il y a ${Math.floor(diffS / 3600)}h`;
+}
+
+// Refresh "ago" labels every 10s
+setInterval(() => {
+    Object.keys(clients).forEach(login => {
+        const c = clients[login];
+        const el = document.getElementById(`ago-${login}`);
+        if (el) el.textContent = '⏱ ' + formatAgo(c.last_thumb_at || c.captured_at);
+        // Also refresh freshness border
+        const thumbDiv = document.getElementById(`thumb-${login}`);
+        if (thumbDiv) thumbDiv.className = 'card-thumb ' + getFreshnessClass(c);
+    });
+}, 10000);
+
+// Countdown
+function updateCountdown() {
+    const now = new Date();
+    const diff = Math.max(0, Math.floor((EXPIRES_AT - now) / 1000));
+    const h = Math.floor(diff / 3600);
+    const m = Math.floor((diff % 3600) / 60);
+    const s = diff % 60;
+    document.getElementById('countdown').textContent =
+        `⏰ ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    if (diff <= 0) {
+        document.getElementById('countdown').textContent = '⏰ Expiré';
+    }
+}
+setInterval(updateCountdown, 1000);
+updateCountdown();
+
+// ══════════════════════════════════════════════════════════════
+// ACTIONS
+// ══════════════════════════════════════════════════════════════
+async function triggerCapture(login) {
+    await fetch(`/session/${GROUP_CODE}/client/${login}/capture`, { method: 'POST' });
+}
+
+async function captureAll() {
+    const promises = Object.keys(clients).map(login => triggerCapture(login));
+    await Promise.all(promises);
+}
+
+let blockDurationMin = 0; // 0 = illimité
+let blockEndTime = null;
+let blockTimerInterval = null;
+
+function setBlockDuration(minutes) {
+    blockDurationMin = minutes;
+    document.querySelectorAll('.duration-btn').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.min) === minutes);
+    });
+}
+
+async function toggleBlock() {
+    const checked = document.getElementById('toggle-block').checked;
+    document.getElementById('whitelist-panel').classList.toggle('visible', checked);
+    if (!checked) {
+        const success = await updateDirectives({ block_internet: false, whitelist: [] });
+        if (success) {
+            clearBlockTimer();
+            const timerEl = document.getElementById('block-timer');
+            if (timerEl) {
+                timerEl.style.display = 'block';
+                timerEl.style.background = 'rgba(34,197,94,0.15)';
+                timerEl.style.borderColor = 'rgba(34,197,94,0.3)';
+                timerEl.style.color = '#86efac';
+                timerEl.innerHTML = '✅ Internet débloqué — sera appliqué au prochain heartbeat (~60s max)';
+                setTimeout(() => { timerEl.style.display = 'none'; }, 10000);
+            }
+        } else {
+            // Remettre le toggle en position ON si l'envoi a échoué
+            document.getElementById('toggle-block').checked = true;
+            document.getElementById('whitelist-panel').classList.add('visible');
+        }
+    }
+}
+
+function clearBlockTimer() {
+    if (blockTimerInterval) clearInterval(blockTimerInterval);
+    blockTimerInterval = null;
+    blockEndTime = null;
+    const timerEl = document.getElementById('block-timer');
+    if (timerEl) timerEl.style.display = 'none';
+}
+
+function startBlockTimer() {
+    if (blockDurationMin <= 0) {
+        const timerEl = document.getElementById('block-timer');
+        if (timerEl) {
+            timerEl.style.display = 'block';
+            timerEl.innerHTML = '🔒 Blocage actif — <strong>durée illimitée</strong>';
+        }
+        return;
+    }
+    blockEndTime = Date.now() + blockDurationMin * 60 * 1000;
+    const timerEl = document.getElementById('block-timer');
+    if (timerEl) timerEl.style.display = 'block';
+
+    function updateBlockCountdown() {
+        const remaining = blockEndTime - Date.now();
+        if (remaining <= 0) {
+            // Auto-déblocage
+            document.getElementById('toggle-block').checked = false;
+            toggleBlock();
+            return;
+        }
+        const mins = Math.floor(remaining / 60000);
+        const secs = Math.floor((remaining % 60000) / 1000);
+        const countdownEl = document.getElementById('block-countdown');
+        if (countdownEl) countdownEl.textContent = `${mins}m ${secs.toString().padStart(2,'0')}s`;
+    }
+
+    updateBlockCountdown();
+    blockTimerInterval = setInterval(updateBlockCountdown, 1000);
+}
+
+async function applyWhitelist() {
+    const text = document.getElementById('whitelist-text').value;
+    const whitelist = text.split('\n').map(l => l.trim()).filter(l => l);
+    await updateDirectives({ block_internet: true, whitelist });
+    startBlockTimer();
+}
+
+async function updateDirectives(data) {
+    try {
+        const resp = await fetch(`/session/${GROUP_CODE}/directives`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+        if (resp.status === 401) {
+            alert('Session expirée. Veuillez vous reconnecter.');
+            window.location.href = '/login';
+            return false;
+        }
+        if (!resp.ok) {
+            alert('Erreur lors de la mise à jour des directives.');
+            return false;
+        }
+        return true;
+    } catch (e) {
+        alert('Erreur réseau : impossible de contacter le serveur.');
+        return false;
+    }
+}
+
+function showMessageModal() {
+    document.getElementById('msg-modal-overlay').classList.add('active');
+}
+function closeMsgModal() {
+    document.getElementById('msg-modal-overlay').classList.remove('active');
+}
+
+async function sendMessage() {
+    msgCounter++;
+    const msg = {
+        id: `msg_${Date.now()}_${msgCounter}`,
+        text: document.getElementById('msg-text').value,
+        type: document.getElementById('msg-type').value,
+        display: 'popup',
+        duration_s: parseInt(document.getElementById('msg-duration').value) || 0,
+    };
+    await updateDirectives({ message: msg });
+    closeMsgModal();
+    document.getElementById('msg-text').value = '';
+}
+
+function showUrlPrompt() {
+    const url = prompt('URL à ouvrir sur tous les postes :');
+    if (url) {
+        updateDirectives({ open_url: { url, target: 'all' } });
+    }
+}
+
+async function closeSession() {
+    if (!confirm('Fermer la session ? Tous les élèves seront déconnectés.')) return;
+    await fetch('/session/close', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ group_code: GROUP_CODE }),
+    });
+    window.location.href = '/sessions';
+}
+
+// ══════════════════════════════════════════════════════════════
+// DETAIL MODAL
+// ══════════════════════════════════════════════════════════════
+async function openDetail(login) {
+    currentDetailLogin = login;
+    currentHistoryIdx = -1; // -1 = latest
+
+    const c = clients[login];
+    document.getElementById('detail-title').textContent = `${login} — Capture en direct`;
+    document.getElementById('detail-img').src = `/media/${GROUP_CODE}/${login}/latest.png?t=${Date.now()}`;
+    document.getElementById('detail-info').innerHTML =
+        `<div>🖥 Fenêtre : ${c.active_window || '—'}</div>
+         <div>⏱ ${formatAgo(c.last_thumb_at || c.captured_at)}</div>`;
+    document.getElementById('detail-modal').classList.add('active');
+
+    // Preload history
+    const navDiv = document.querySelector('.modal-nav');
+    if (navDiv) navDiv.style.display = 'none';
+
+    if (!historyCache[login]) {
+        try {
+            const resp = await fetch(`/media/${GROUP_CODE}/${login}/history`);
+            if (resp.ok) {
+                historyCache[login] = await resp.json();
+                if (historyCache[login].length > 0 && navDiv) navDiv.style.display = 'flex';
+            }
+            else historyCache[login] = [];
+        } catch (e) { historyCache[login] = []; }
+    } else if (historyCache[login].length > 0 && navDiv) {
+        navDiv.style.display = 'flex';
+    }
+}
+
+function closeDetailModal() {
+    document.getElementById('detail-modal').classList.remove('active');
+    currentDetailLogin = null;
+}
+
+function navHistory(dir) {
+    if (!currentDetailLogin) return;
+    const hist = historyCache[currentDetailLogin] || [];
+    if (hist.length === 0) return;
+
+    if (currentHistoryIdx === -1) {
+        currentHistoryIdx = dir > 0 ? 0 : hist.length - 1;
+    } else {
+        currentHistoryIdx = Math.max(0, Math.min(hist.length - 1, currentHistoryIdx + dir));
+    }
+
+    const entry = hist[currentHistoryIdx];
+    document.getElementById('detail-img').src = entry.original_url + '?t=' + Date.now();
+    document.getElementById('detail-title').textContent =
+        `${currentDetailLogin} — ${entry.captured_at || entry.timestamp}`;
+    document.getElementById('detail-info').innerHTML =
+        `<div>📅 Capture : ${entry.captured_at || entry.timestamp}</div>
+         <div>📍 ${currentHistoryIdx + 1} / ${hist.length}</div>`;
+}
+
+function triggerCaptureFromModal() {
+    if (currentDetailLogin) triggerCapture(currentDetailLogin);
+}
+
+async function openHistory(login) {
+    currentDetailLogin = login;
+    try {
+        const resp = await fetch(`/media/${GROUP_CODE}/${login}/history`);
+        if (resp.ok) historyCache[login] = await resp.json();
+    } catch (e) {}
+
+    const hist = historyCache[login] || [];
+    if (hist.length === 0) {
+        alert('Aucun historique disponible pour cet élève.');
+        return;
+    }
+    currentHistoryIdx = 0;
+    const entry = hist[0];
+    document.getElementById('detail-title').textContent =
+        `${login} — Historique (${hist.length} captures)`;
+    document.getElementById('detail-img').src = entry.original_url + '?t=' + Date.now();
+    document.getElementById('detail-info').innerHTML =
+        `<div>📅 ${entry.captured_at || entry.timestamp}</div>
+         <div>📍 1 / ${hist.length}</div>`;
+    document.getElementById('detail-modal').classList.add('active');
+}
+
+// Close modals on overlay click
+document.getElementById('detail-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeDetailModal();
+});
+document.getElementById('msg-modal-overlay').addEventListener('click', function(e) {
+    if (e.target === this) closeMsgModal();
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        closeDetailModal();
+        closeMsgModal();
+    }
+    if (currentDetailLogin) {
+        if (e.key === 'ArrowLeft') navHistory(-1);
+        if (e.key === 'ArrowRight') navHistory(1);
+    }
+});
+
+// ══════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════
+loadInitial();
+connectSSE();
+</script>
+</body>
+</html>
