@@ -54,6 +54,9 @@ server/client_binaries/
 # --- Dossier client_windows (contient l'exe compilé) ---
 client_windows/
 
+# --- Dossier serveur_docker (archives de déploiement) ---
+serveur_docker/
+
 # --- Logs et bases ---
 *.log
 *.sqlite
