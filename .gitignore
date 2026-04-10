@@ -1,8 +1,22 @@
-# Scripts and Logs
-*.log
-*.sqlite
+# ========================================
+# .gitignore - Projet Supervision COMEDU
+# ========================================
 
-# Confidential / Keys
+# --- Exécutables et binaires ---
+*.exe
+*.msi
+*.dll
+*.so
+*.dylib
+
+# --- Archives et fichiers compressés ---
+*.zip
+*.tar.gz
+*.tar.bz2
+*.rar
+*.7z
+
+# --- Certificats et clés (SÉCURITÉ) ---
 server.key
 server.crt
 transport.key
@@ -10,28 +24,43 @@ transport.key
 *.pfx
 *.p12
 
-# Environment variables
+# --- Variables d'environnement ---
 .env
+.env.*
 
-# Python specific
+# --- Python ---
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 .Python
-env/
-venv/
-.venv/
 pip-log.txt
 pip-delete-this-directory.txt
 
-# Directories with dynamic data
-data/
-uploads/
-client_binaries/
+# --- Environnements virtuels Python ---
+env/
+venv/
+.venv/
 
-# Archives
-*.zip
-*.tar.gz
-*.rar
-*.7z
+# --- PyInstaller (build du client) ---
+sources_client/build/
+sources_client/dist/
+
+# --- Données dynamiques du serveur ---
+server/data/
+server/uploads/
+server/client_binaries/
+
+# --- Dossier client_windows (contient l'exe compilé) ---
+client_windows/
+
+# --- Logs et bases ---
+*.log
+*.sqlite
+
+# --- IDE ---
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
